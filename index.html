@@ -1,0 +1,809 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>우리 사이 퀴즈</title>
+<meta name="description" content="나에 대한 퀴즈를 만들어 친구에게 보내고, 맞힌 만큼 빼빼로를 채워보세요!">
+<meta name="theme-color" content="#e8487a" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#2a1810" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="우리 사이 퀴즈 🍫">
+<meta property="og:description" content="나에 대해 얼마나 알아? 맞힌 만큼 빼빼로가 채워져요!">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍫</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap" rel="stylesheet">
+<style>
+  /* ===== 색상 (밝은 모드: 딸기 핑크 + 초콜릿) ===== */
+  :root {
+    --bg: #fff0f4;
+    --bg-stripe: #ffe3ec;
+    --card: #ffffff;
+    --text: #3b2318;
+    --muted: #8a6a5c;
+    --pink: #e8487a;
+    --pink-dark: #c9305f;
+    --pink-soft: #ffd6e2;
+    --choco: #4a2a1a;
+    --choco-light: #6b3d26;
+    --biscuit: #e9b872;
+    --biscuit-dark: #c99450;
+    --line: #f3c4d3;
+    --green: #2e9e5b;
+    --green-soft: #dff4e7;
+    --red: #d6334a;
+    --red-soft: #fde2e6;
+    --input-bg: #fff8fa;
+    --shadow: 0 6px 20px rgba(120, 30, 60, .12);
+    color-scheme: light;
+  }
+  /* ===== 다크모드: 초콜릿색 배경 ===== */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #2a1810;
+      --bg-stripe: #301c13;
+      --card: #3b2419;
+      --text: #fbe9df;
+      --muted: #c9a99a;
+      --pink: #ff7aa2;
+      --pink-dark: #ff5d8c;
+      --pink-soft: #5b2e36;
+      --choco: #1c0e07;
+      --choco-light: #8a5236;
+      --biscuit: #e9b872;
+      --biscuit-dark: #c99450;
+      --line: #5a3a2c;
+      --green: #5fd38f;
+      --green-soft: #1f3b2a;
+      --red: #ff6b7f;
+      --red-soft: #4a2028;
+      --input-bg: #2f1c13;
+      --shadow: 0 6px 20px rgba(0, 0, 0, .35);
+      color-scheme: dark;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: repeating-linear-gradient(135deg, var(--bg) 0 28px, var(--bg-stripe) 28px 56px);
+    color: var(--text);
+    font-family: 'Gowun Dodum', system-ui, sans-serif;
+    font-size: 17px;
+    line-height: 1.55;
+    min-height: 100vh;
+    -webkit-tap-highlight-color: transparent;
+  }
+  h1, h2, h3, .jua, button { font-family: 'Jua', 'Gowun Dodum', sans-serif; font-weight: 400; }
+
+  /* 가운데 한 줄 배치 */
+  .wrap {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 20px 16px calc(40px + env(safe-area-inset-bottom));
+  }
+  .screen { display: none; }
+  .screen.active { display: block; animation: pop .25s ease; }
+  @keyframes pop { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  /* 상단 리본(빼빼로 상자 뚜껑 느낌) */
+  .ribbon {
+    background: var(--pink);
+    color: #fff;
+    border-radius: 20px;
+    padding: 18px 18px 16px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 18px;
+  }
+  .ribbon::after {
+    content: "";
+    position: absolute; left: 0; right: 0; bottom: 0; height: 10px;
+    background: var(--choco);
+  }
+  .ribbon h1 { margin: 0; font-size: 30px; letter-spacing: .5px; }
+  .ribbon p { margin: 4px 0 6px; opacity: .95; }
+
+  .card {
+    background: var(--card);
+    border-radius: 18px;
+    padding: 18px 16px;
+    box-shadow: var(--shadow);
+    margin-bottom: 14px;
+    border: 3px solid transparent;
+    transition: border-color .2s;
+  }
+  .card.missing { border-color: var(--red); }
+  .card .warn { display: none; color: var(--red); font-size: 14px; margin-top: 8px; }
+  .card.missing .warn { display: block; }
+
+  label.field { display: block; font-family: 'Jua', sans-serif; margin-bottom: 6px; }
+  .count { float: right; color: var(--muted); font-family: 'Gowun Dodum', sans-serif; font-size: 13px; }
+
+  input[type=text], textarea {
+    width: 100%;
+    font: inherit;
+    color: var(--text);
+    background: var(--input-bg);
+    border: 2px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 12px;
+    outline: none;
+  }
+  input[type=text]:focus, textarea:focus { border-color: var(--pink); }
+  textarea { resize: none; min-height: 72px; }
+  input.bad { border-color: var(--red); }
+
+  .q-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .q-num {
+    flex: none;
+    background: var(--choco); color: #fff;
+    border-radius: 10px; padding: 2px 10px;
+    font-family: 'Jua', sans-serif;
+  }
+  .q-del {
+    margin-left: auto;
+    background: none; border: 2px solid var(--line); color: var(--muted);
+    border-radius: 10px; padding: 6px 10px; font-size: 15px; cursor: pointer;
+  }
+  .q-del:disabled { opacity: .35; cursor: not-allowed; }
+  .q-text { margin-bottom: 10px; }
+
+  .opt { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  .dot {
+    flex: none;
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    border: 3px solid var(--line);
+    background: var(--input-bg);
+    cursor: pointer;
+    position: relative;
+    padding: 0;
+  }
+  .dot[aria-checked=true] { border-color: var(--green); background: var(--green); }
+  .dot[aria-checked=true]::after {
+    content: "✓"; color: #fff; font-size: 18px;
+    position: absolute; inset: 0; display: grid; place-items: center;
+  }
+  .opt input { padding: 10px 12px; }
+  .hint { color: var(--muted); font-size: 14px; margin: 6px 0 0; }
+
+  /* 버튼: 크고 누르기 쉽게 */
+  .btn {
+    display: block; width: 100%;
+    min-height: 58px;
+    border: none; border-radius: 16px;
+    font-size: 21px;
+    cursor: pointer;
+    margin-top: 12px;
+    padding: 12px 16px;
+    transition: transform .08s, filter .15s;
+    text-decoration: none; text-align: center;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-pink { background: var(--pink); color: #fff; box-shadow: 0 5px 0 var(--pink-dark); }
+  .btn-choco { background: var(--choco); color: #fff; box-shadow: 0 5px 0 #000; }
+  @media (prefers-color-scheme: dark) { .btn-choco { background: var(--choco-light); box-shadow: 0 5px 0 var(--choco); } }
+  .btn-ghost { background: transparent; color: var(--text); border: 3px solid var(--line); }
+  .btn-small { min-height: 48px; font-size: 18px; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  .err-banner {
+    display: none;
+    background: var(--red-soft); color: var(--red);
+    border-radius: 12px; padding: 12px; margin-top: 12px; text-align: center;
+  }
+  .err-banner.show { display: block; }
+
+  /* 링크 공유 화면 */
+  .link-box {
+    word-break: break-all;
+    background: var(--input-bg);
+    border: 2px dashed var(--pink);
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 13px;
+    max-height: 120px; overflow: auto;
+    -webkit-user-select: all; user-select: all;
+    -webkit-touch-callout: default;
+  }
+  .link-box a { color: var(--text); }
+  .copied { color: var(--green); text-align: center; min-height: 24px; margin-top: 8px; font-family: 'Jua', sans-serif; }
+
+  /* 퀴즈 푸는 화면 */
+  .progress { height: 14px; background: var(--pink-soft); border-radius: 99px; overflow: hidden; }
+  .progress > div { height: 100%; width: 0; background: var(--pink); border-radius: 99px; transition: width .35s ease; }
+  .progress-label { text-align: right; color: var(--muted); font-size: 14px; margin: 6px 2px 14px; }
+  .play-q { font-size: 25px; margin: 4px 0 16px; line-height: 1.35; }
+  .choice {
+    display: block; width: 100%;
+    text-align: left;
+    font-family: 'Gowun Dodum', sans-serif; font-size: 19px;
+    background: var(--input-bg); color: var(--text);
+    border: 3px solid var(--line); border-radius: 14px;
+    padding: 16px 16px; margin-top: 10px;
+    min-height: 60px;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+  }
+  .choice:disabled { cursor: default; }
+  .choice.right { background: var(--green-soft); border-color: var(--green); color: var(--green); font-weight: bold; }
+  .choice.wrong { background: var(--red-soft); border-color: var(--red); color: var(--red); text-decoration: line-through; text-decoration-thickness: 2px; }
+
+  /* 결과: 빼빼로 상자 */
+  .box {
+    background: var(--pink);
+    border-radius: 18px;
+    padding: 18px 12px 0;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    position: relative;
+  }
+  .box-label { color: #fff; text-align: center; font-family: 'Jua', sans-serif; font-size: 18px; margin-bottom: 8px; }
+  .sticks {
+    display: flex; justify-content: center; align-items: flex-end;
+    gap: clamp(6px, 2.5vw, 14px);
+    height: 210px;
+    padding: 10px 6px 0;
+    background: rgba(255, 255, 255, .18);
+    border-radius: 14px 14px 0 0;
+  }
+  .stick {
+    width: clamp(14px, 5vw, 24px);
+    height: 180px;
+    border-radius: 99px 99px 6px 6px;
+    position: relative;
+    transform-origin: bottom center;
+  }
+  .stick.full .choco {
+    position: absolute; left: 0; right: 0; top: 0; height: 72%;
+    background: linear-gradient(90deg, var(--choco-light), var(--choco) 60%, #2b170d);
+    border-radius: 99px 99px 4px 4px;
+  }
+  .stick.full .bis {
+    position: absolute; left: 12%; right: 12%; bottom: 0; height: 30%;
+    background: linear-gradient(90deg, #f3cf93, var(--biscuit) 55%, var(--biscuit-dark));
+    border-radius: 2px 2px 6px 6px;
+  }
+  .stick.full { animation: rise .55s cubic-bezier(.3, 1.4, .5, 1) both; }
+  @keyframes rise { from { transform: translateY(110%) rotate(var(--tilt)); } to { transform: translateY(0) rotate(var(--tilt)); } }
+  .stick { transform: rotate(var(--tilt)); }
+  .stick.empty {
+    border: 3px dashed rgba(255, 255, 255, .75);
+    background: rgba(255, 255, 255, .12);
+  }
+  .box-bottom { background: var(--choco); height: 22px; margin: 0 -12px; }
+
+  .score { text-align: center; margin: 18px 0 4px; }
+  .score .big { font-family: 'Jua', sans-serif; font-size: 54px; line-height: 1; color: var(--pink); }
+  .score .big small { font-size: 30px; color: var(--muted); }
+  .grade { text-align: center; font-family: 'Jua', sans-serif; font-size: 23px; margin: 8px 0 2px; }
+  .who { text-align: center; color: var(--muted); }
+  .msg-card { text-align: center; }
+  .msg-card .from { font-family: 'Jua', sans-serif; color: var(--pink); margin-bottom: 4px; }
+  .msg-card .body { font-size: 19px; white-space: pre-wrap; word-break: break-word; }
+  .capture {
+    text-align: center; background: var(--pink-soft); border-radius: 14px;
+    padding: 12px; font-family: 'Jua', sans-serif; font-size: 17px;
+  }
+  .center { text-align: center; }
+  .muted { color: var(--muted); }
+  .ad-slot { display: none; } /* 광고를 넣을 때 display:block 으로 바꾸기 */
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <!-- ==================== 화면 1: 만들기 ==================== -->
+  <section id="s-make" class="screen">
+    <div class="ribbon">
+      <h1>🍫 우리 사이 퀴즈</h1>
+      <p>나에 대한 퀴즈를 만들어 친구에게 보내보세요!</p>
+    </div>
+
+    <div class="card" id="name-card">
+      <label class="field" for="in-name">내 이름 <span class="count" id="cnt-name">0/12</span></label>
+      <input type="text" id="in-name" maxlength="12" placeholder="예: 세현" autocomplete="off">
+      <p class="warn">이름을 적어주세요</p>
+    </div>
+
+    <div class="card">
+      <label class="field" for="in-msg">다 푼 친구에게 보여줄 한마디 (선택) <span class="count" id="cnt-msg">0/60</span></label>
+      <textarea id="in-msg" maxlength="60" placeholder="예: 빼빼로 잘 먹을게~ 🍫"></textarea>
+    </div>
+
+    <p class="hint center">보기 옆 <b>동그라미</b>를 눌러 정답을 골라주세요. 글자는 눌러서 고칠 수 있어요.</p>
+    <div id="q-list"></div>
+
+    <button class="btn btn-ghost btn-small" id="btn-add">＋ 질문 추가하기</button>
+    <button class="btn btn-ghost btn-small" id="btn-reset">↺ 기본 질문으로 되돌리기</button>
+    <button class="btn btn-pink" id="btn-make">퀴즈 링크 만들기 🍫</button>
+    <div class="err-banner" id="make-err"></div>
+    <p class="hint center">쓰던 내용은 이 폰에 자동 저장돼요.</p>
+  </section>
+
+  <!-- ==================== 화면 2: 링크 공유 ==================== -->
+  <section id="s-share" class="screen">
+    <div class="ribbon">
+      <h1>링크 완성! 🎉</h1>
+      <p>이 링크를 친구에게 보내주세요</p>
+    </div>
+    <div class="card">
+      <div class="link-box" id="link-box"><a id="link-a" href="#" target="_blank" rel="noopener"></a></div>
+      <button class="btn btn-pink" id="btn-copy">링크 복사하기</button>
+      <div class="copied" id="copy-msg" aria-live="polite"></div>
+      <p class="hint center" id="copy-help" hidden>
+        복사가 안 되면 위의 링크를 <b>손가락으로 길게 눌러</b> '복사'를 골라주세요.
+      </p>
+    </div>
+    <button class="btn btn-choco" id="btn-try">친구 입장에서 풀어보기</button>
+    <button class="btn btn-ghost" id="btn-edit">질문 고치기</button>
+  </section>
+
+  <!-- ==================== 화면 3-1: 친구 시작 화면 ==================== -->
+  <section id="s-intro" class="screen">
+    <div class="ribbon">
+      <h1 id="intro-title"></h1>
+      <p id="intro-sub"></p>
+    </div>
+    <div class="card" id="friend-card">
+      <label class="field" for="in-friend">내 이름 (푸는 사람)</label>
+      <input type="text" id="in-friend" maxlength="12" placeholder="이름을 적어주세요" autocomplete="off">
+      <p class="warn">이름을 적어야 시작할 수 있어요</p>
+    </div>
+    <button class="btn btn-pink" id="btn-start">시작하기 🍫</button>
+  </section>
+
+  <!-- ==================== 화면 3-2: 문제 풀기 ==================== -->
+  <section id="s-play" class="screen">
+    <div class="progress"><div id="prog-bar"></div></div>
+    <div class="progress-label" id="prog-label"></div>
+    <div class="card">
+      <h2 class="play-q" id="play-q"></h2>
+      <div id="play-opts"></div>
+    </div>
+  </section>
+
+  <!-- ==================== 화면 4: 결과 ==================== -->
+  <section id="s-result" class="screen">
+    <div class="box">
+      <div class="box-label" id="box-label"></div>
+      <div class="sticks" id="sticks"></div>
+      <div class="box-bottom"></div>
+    </div>
+
+    <div class="score">
+      <div class="big"><span id="score-n">0</span> <small>/ <span id="score-t">0</span></small></div>
+    </div>
+    <div class="grade" id="grade"></div>
+    <p class="who" id="who"></p>
+
+    <div class="card msg-card" id="msg-card" hidden>
+      <div class="from" id="msg-from"></div>
+      <div class="body" id="msg-body"></div>
+    </div>
+
+    <p class="capture" id="capture"></p>
+
+    <!-- ===== 광고 자리 #1 (결과 화면 중간) =====
+         나중에 광고 코드(예: 구글 애드센스)를 이 div 안에 붙여 넣고,
+         위 CSS의 .ad-slot 을 display:block 으로 바꾸면 됩니다. -->
+    <div class="ad-slot" id="ad-result"></div>
+
+    <button class="btn btn-pink" id="btn-mine">나도 내 퀴즈 만들기 🍫</button>
+    <button class="btn btn-ghost btn-small" id="btn-again">다시 풀어보기</button>
+
+    <!-- ===== 광고 자리 #2 (결과 화면 맨 아래) ===== -->
+    <div class="ad-slot" id="ad-bottom"></div>
+  </section>
+
+  <!-- ==================== 잘못된 링크 ==================== -->
+  <section id="s-bad" class="screen">
+    <div class="ribbon"><h1>앗, 링크가 이상해요 😢</h1></div>
+    <div class="card center">
+      링크가 잘렸거나 잘못 복사된 것 같아요.<br>보낸 친구에게 링크를 다시 받아주세요.
+    </div>
+    <button class="btn btn-pink" id="btn-bad-make">나도 내 퀴즈 만들기 🍫</button>
+  </section>
+
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---------- 설정 ----------
+  var MIN_Q = 3, MAX_Q = 10, NAME_MAX = 12, MSG_MAX = 60;
+  var STORE_KEY = 'urisai-quiz-draft-v1';
+
+  var DEFAULT_QS = [
+    ['내가 제일 좋아하는 빼빼로는?', ['오리지널', '아몬드', '누드', '크런키']],
+    ['내가 스트레스 받으면 제일 먼저 하는 것은?', ['잠자기', '맛있는 거 먹기', '노래방', '유튜브 보기']],
+    ['내가 제일 싫어하는 음식은?', ['오이', '가지', '민트초코', '없음, 다 잘 먹음']],
+    ['주말에 나는 주로?', ['집에서 뒹굴기', '카페 가기', '친구 만나기', '알바']],
+    ['내가 연락 답장 늦을 때 이유는?', ['자고 있음', '폰 안 봄', '귀찮음', '바쁨']],
+    ['나랑 제일 어울리는 겨울 음식은?', ['붕어빵', '호떡', '군고구마', '어묵']],
+    ['내가 지금 제일 갖고 싶은 건?', ['새 폰', '여행', '돈', '잠']]
+  ];
+
+  function freshDraft() {
+    return {
+      name: '',
+      msg: '',
+      qs: DEFAULT_QS.map(function (q) { return { t: q[0], o: q[1].slice(), a: -1 }; })
+    };
+  }
+
+  // ---------- 작은 도우미 ----------
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text; // textContent: 사용자가 쓴 글을 안전하게 표시
+    return e;
+  }
+  function show(id) {
+    var list = document.querySelectorAll('.screen');
+    for (var i = 0; i < list.length; i++) list[i].classList.remove('active');
+    $(id).classList.add('active');
+    window.scrollTo(0, 0);
+  }
+  function clip(s, n) { return String(s == null ? '' : s).slice(0, n); }
+
+  // ---------- 링크 인코딩 (한글 안전: UTF-8 → base64url) ----------
+  function encode(obj) {
+    var bytes = new TextEncoder().encode(JSON.stringify(obj));
+    var bin = '';
+    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function decode(str) {
+    var b64 = str.replace(/-/g, '+').replace(/_/g, '/');
+    while (b64.length % 4) b64 += '=';
+    var bin = atob(b64);
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return JSON.parse(new TextDecoder().decode(bytes));
+  }
+  // 링크에 담는 모양: { v:1, n:이름, m:한마디, q:[[질문, [보기4개], 정답번호], ...] }
+  function toPayload(d) {
+    return { v: 1, n: d.name.trim(), m: d.msg.trim(), q: d.qs.map(function (q) { return [q.t.trim(), q.o.map(function (o) { return o.trim(); }), q.a]; }) };
+  }
+  function validPayload(p) {
+    if (!p || typeof p.n !== 'string' || !Array.isArray(p.q) || p.q.length < 1 || p.q.length > 20) return null;
+    var qs = [];
+    for (var i = 0; i < p.q.length; i++) {
+      var q = p.q[i];
+      if (!Array.isArray(q) || typeof q[0] !== 'string' || !Array.isArray(q[1]) || q[1].length !== 4) return null;
+      var a = q[2];
+      if (typeof a !== 'number' || a < 0 || a > 3 || a % 1) return null;
+      qs.push({ t: clip(q[0], 200), o: q[1].map(function (o) { return clip(o, 100); }), a: a });
+    }
+    return { name: clip(p.n, NAME_MAX) || '친구', msg: clip(typeof p.m === 'string' ? p.m : '', MSG_MAX), qs: qs };
+  }
+  function linkFor(code) {
+    return location.href.split('#')[0] + '#q=' + code;
+  }
+
+  // ---------- 자동 저장 (폰에 저장) ----------
+  var draft;
+  function loadDraft() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (raw) {
+        var d = JSON.parse(raw);
+        if (d && Array.isArray(d.qs) && d.qs.length >= MIN_Q) return d;
+      }
+    } catch (e) {}
+    return freshDraft();
+  }
+  function saveDraft() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(draft)); } catch (e) {}
+  }
+
+  // ---------- 화면 1: 만들기 ----------
+  function renderMake() {
+    $('in-name').value = draft.name;
+    $('in-msg').value = draft.msg;
+    updateCounts();
+    renderQuestions();
+  }
+  function updateCounts() {
+    $('cnt-name').textContent = draft.name.length + '/' + NAME_MAX;
+    $('cnt-msg').textContent = draft.msg.length + '/' + MSG_MAX;
+  }
+  function renderQuestions() {
+    var list = $('q-list');
+    list.innerHTML = '';
+    draft.qs.forEach(function (q, qi) {
+      var card = el('div', 'card q-card');
+      card.dataset.qi = qi;
+
+      var head = el('div', 'q-head');
+      head.appendChild(el('span', 'q-num', 'Q' + (qi + 1)));
+      var del = el('button', 'q-del', '빼기 ✕');
+      del.type = 'button';
+      del.disabled = draft.qs.length <= MIN_Q;
+      del.title = del.disabled ? '질문은 최소 ' + MIN_Q + '개가 있어야 해요' : '이 질문 빼기';
+      del.addEventListener('click', function () {
+        if (draft.qs.length <= MIN_Q) return;
+        draft.qs.splice(qi, 1);
+        saveDraft();
+        renderQuestions();
+      });
+      head.appendChild(del);
+      card.appendChild(head);
+
+      var qt = el('input', 'q-text');
+      qt.type = 'text'; qt.maxLength = 80; qt.value = q.t; qt.placeholder = '질문을 적어주세요';
+      qt.setAttribute('aria-label', (qi + 1) + '번 질문');
+      qt.addEventListener('input', function () { q.t = qt.value; qt.classList.remove('bad'); saveDraft(); clearMissing(card, q); });
+      card.appendChild(qt);
+
+      var dots = [];
+      q.o.forEach(function (opt, oi) {
+        var row = el('div', 'opt');
+        var dot = el('button', 'dot');
+        dot.type = 'button';
+        dot.setAttribute('role', 'radio');
+        dot.setAttribute('aria-checked', q.a === oi ? 'true' : 'false');
+        dot.setAttribute('aria-label', (oi + 1) + '번 보기를 정답으로');
+        dot.addEventListener('click', function () {
+          q.a = oi;
+          dots.forEach(function (d, i) { d.setAttribute('aria-checked', i === oi ? 'true' : 'false'); });
+          saveDraft();
+          clearMissing(card, q);
+        });
+        dots.push(dot);
+        var inp = el('input');
+        inp.type = 'text'; inp.maxLength = 40; inp.value = opt; inp.placeholder = '보기 ' + (oi + 1);
+        inp.setAttribute('aria-label', (qi + 1) + '번 질문의 ' + (oi + 1) + '번 보기');
+        inp.addEventListener('input', function () { q.o[oi] = inp.value; inp.classList.remove('bad'); saveDraft(); clearMissing(card, q); });
+        row.appendChild(dot);
+        row.appendChild(inp);
+        card.appendChild(row);
+      });
+
+      var warn = el('p', 'warn', '');
+      card.appendChild(warn);
+      list.appendChild(card);
+    });
+    $('btn-add').disabled = draft.qs.length >= MAX_Q;
+  }
+  function problemOf(q) {
+    if (!q.t.trim()) return '질문 내용을 적어주세요';
+    for (var i = 0; i < 4; i++) if (!q.o[i].trim()) return '비어 있는 보기가 있어요';
+    if (q.a < 0) return '정답을 골라주세요 (보기 옆 동그라미를 눌러요)';
+    return '';
+  }
+  function clearMissing(card, q) {
+    if (card.classList.contains('missing') && !problemOf(q)) card.classList.remove('missing');
+  }
+
+  $('in-name').addEventListener('input', function (e) {
+    draft.name = e.target.value.slice(0, NAME_MAX); updateCounts(); saveDraft();
+    if (draft.name.trim()) $('name-card').classList.remove('missing');
+  });
+  $('in-msg').addEventListener('input', function (e) {
+    draft.msg = e.target.value.slice(0, MSG_MAX); updateCounts(); saveDraft();
+  });
+  $('btn-add').addEventListener('click', function () {
+    if (draft.qs.length >= MAX_Q) return;
+    draft.qs.push({ t: '', o: ['', '', '', ''], a: -1 });
+    saveDraft();
+    renderQuestions();
+    var cards = document.querySelectorAll('.q-card');
+    var last = cards[cards.length - 1];
+    last.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    last.querySelector('.q-text').focus();
+  });
+  $('btn-reset').addEventListener('click', function () {
+    if (!confirm('질문을 기본 질문 7개로 되돌릴까요? (이름과 한마디는 그대로예요)')) return;
+    draft.qs = freshDraft().qs;
+    saveDraft();
+    renderQuestions();
+  });
+
+  $('btn-make').addEventListener('click', function () {
+    var firstBad = null, count = 0;
+    var nameCard = $('name-card');
+    if (!draft.name.trim()) { nameCard.classList.add('missing'); firstBad = nameCard; count++; }
+    var cards = document.querySelectorAll('.q-card');
+    draft.qs.forEach(function (q, i) {
+      var card = cards[i];
+      var p = problemOf(q);
+      if (p) {
+        card.classList.add('missing');
+        card.querySelector('.warn').textContent = p;
+        if (!q.t.trim()) card.querySelector('.q-text').classList.add('bad');
+        var opts = card.querySelectorAll('.opt input');
+        q.o.forEach(function (o, oi) { if (!o.trim()) opts[oi].classList.add('bad'); });
+        if (!firstBad) firstBad = card;
+        count++;
+      } else {
+        card.classList.remove('missing');
+      }
+    });
+    var err = $('make-err');
+    if (firstBad) {
+      err.textContent = '빨간 테두리로 표시된 ' + count + '곳을 확인해주세요!';
+      err.classList.add('show');
+      firstBad.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    err.classList.remove('show');
+    var url = linkFor(encode(toPayload(draft)));
+    currentLink = url;
+    $('link-a').href = url;
+    $('link-a').textContent = url;
+    $('copy-msg').textContent = '';
+    $('copy-help').hidden = true;
+    show('s-share');
+  });
+
+  // ---------- 화면 2: 링크 공유 ----------
+  var currentLink = '';
+  function fallbackCopy(text) {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, text.length);
+      var ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      return ok;
+    } catch (e) { return false; }
+  }
+  function copyDone(ok) {
+    if (ok) {
+      $('copy-msg').textContent = '복사됐어요! 카톡이나 DM에 붙여넣기 하세요 ✓';
+      $('copy-help').hidden = true;
+    } else {
+      $('copy-msg').textContent = '';
+      $('copy-help').hidden = false;
+    }
+  }
+  $('btn-copy').addEventListener('click', function () {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(currentLink).then(function () { copyDone(true); }, function () { copyDone(fallbackCopy(currentLink)); });
+    } else {
+      copyDone(fallbackCopy(currentLink));
+    }
+  });
+  $('btn-try').addEventListener('click', function () {
+    location.hash = currentLink.split('#')[1]; // 친구가 링크로 들어온 것과 똑같이
+  });
+  $('btn-edit').addEventListener('click', function () { show('s-make'); });
+
+  // ---------- 화면 3: 친구가 푸는 화면 ----------
+  var quiz = null, friend = '', idx = 0, correct = 0, locked = false;
+
+  function openQuiz(q) {
+    quiz = q;
+    $('intro-title').textContent = quiz.name + '에 대해 얼마나 알아?';
+    $('intro-sub').textContent = '문제 ' + quiz.qs.length + '개 · 맞힌 만큼 빼빼로가 채워져요 🍫';
+    $('in-friend').value = friend;
+    $('friend-card').classList.remove('missing');
+    show('s-intro');
+  }
+  function startQuiz() {
+    friend = $('in-friend').value.trim();
+    if (!friend) { $('friend-card').classList.add('missing'); $('in-friend').focus(); return; }
+    idx = 0; correct = 0;
+    show('s-play');
+    renderQ();
+  }
+  $('btn-start').addEventListener('click', startQuiz);
+  $('in-friend').addEventListener('keydown', function (e) { if (e.key === 'Enter') startQuiz(); });
+  $('in-friend').addEventListener('input', function () { if ($('in-friend').value.trim()) $('friend-card').classList.remove('missing'); });
+
+  function renderQ() {
+    var q = quiz.qs[idx], total = quiz.qs.length;
+    $('prog-bar').style.width = (idx / total * 100) + '%';
+    $('prog-label').textContent = (idx + 1) + ' / ' + total;
+    $('play-q').textContent = q.t;
+    var box = $('play-opts');
+    box.innerHTML = '';
+    locked = false;
+    q.o.forEach(function (opt, oi) {
+      var b = el('button', 'choice', opt);
+      b.type = 'button';
+      b.addEventListener('click', function () { choose(oi); });
+      box.appendChild(b);
+    });
+  }
+  function choose(oi) {
+    if (locked) return;
+    locked = true;
+    var q = quiz.qs[idx];
+    var btns = $('play-opts').querySelectorAll('.choice');
+    for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
+    btns[q.a].classList.add('right');
+    if (oi === q.a) correct++;
+    else btns[oi].classList.add('wrong');
+    $('prog-bar').style.width = ((idx + 1) / quiz.qs.length * 100) + '%';
+    setTimeout(function () {
+      idx++;
+      if (idx < quiz.qs.length) renderQ();
+      else showResult();
+    }, 750);
+  }
+
+  // ---------- 화면 4: 결과 ----------
+  function gradeText(n, total) {
+    var r = n / total;
+    if (n === total) return '찐친 인증. 빼빼로 한 상자 받을 자격 있음 🏆';
+    if (r >= 0.7) return '꽤 잘 아는 사이 😎';
+    if (r >= 0.4) return '아는 듯 모르는 듯 🤔';
+    return '우리… 좀 더 친해지자 🥲';
+  }
+  function showResult() {
+    var total = quiz.qs.length;
+    $('box-label').textContent = friend + ' 님의 빼빼로 상자';
+    var sticks = $('sticks');
+    sticks.innerHTML = '';
+    for (var i = 0; i < total; i++) {
+      var s = el('div', 'stick ' + (i < correct ? 'full' : 'empty'));
+      var tilt = [-4, -3, -4, -5, -3, -4, -5, -3, -4, -5][i % 10];
+      s.style.setProperty('--tilt', tilt + 'deg');
+      if (i < correct) {
+        s.style.animationDelay = (0.15 + i * 0.16) + 's';
+        s.appendChild(el('div', 'choco'));
+        s.appendChild(el('div', 'bis'));
+      }
+      sticks.appendChild(s);
+    }
+    $('score-n').textContent = correct;
+    $('score-t').textContent = total;
+    $('grade').textContent = gradeText(correct, total);
+    $('who').textContent = friend + ' 님은 ' + quiz.name + ' 님에 대해 ' + total + '문제 중 ' + correct + '문제를 맞혔어요';
+    if (quiz.msg) {
+      $('msg-from').textContent = quiz.name + ' 님의 한마디 💌';
+      $('msg-body').textContent = quiz.msg;
+      $('msg-card').hidden = false;
+    } else {
+      $('msg-card').hidden = true;
+    }
+    $('capture').textContent = '📸 이 화면을 캡처해서 ' + quiz.name + ' 님에게 보내주세요!';
+    show('s-result');
+
+    // ===== 광고 자리 =====
+    // 나중에 광고를 넣는다면, 결과 화면이 뜬 이 시점에 광고를 불러오면 됩니다.
+    // 예) (adsbygoogle = window.adsbygoogle || []).push({});
+  }
+  $('btn-again').addEventListener('click', function () { openQuiz(quiz); });
+  function goMake() {
+    history.pushState(null, '', location.href.split('#')[0]); // 주소에서 #q= 부분 지우기
+    draft = loadDraft();
+    renderMake();
+    show('s-make');
+  }
+  $('btn-mine').addEventListener('click', goMake);
+  $('btn-bad-make').addEventListener('click', goMake);
+
+  // ---------- 주소를 보고 어떤 화면을 띄울지 정하기 ----------
+  function route() {
+    var h = location.hash;
+    if (h.indexOf('#q=') === 0) {
+      var q = null;
+      try { q = validPayload(decode(h.slice(3))); } catch (e) { q = null; }
+      if (q) openQuiz(q); else show('s-bad');
+    } else {
+      renderMake();
+      show('s-make');
+    }
+  }
+  window.addEventListener('hashchange', route);
+  window.addEventListener('popstate', route);
+
+  draft = loadDraft();
+  route();
+})();
+</script>
+</body>
+</html>
